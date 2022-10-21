@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-cam1 = cv2.VideoCapture(1, cv2.CAP_DSHOW)
+cam1 = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
 while (True):
     ret, frame = cam1.read()
