@@ -1,14 +1,4 @@
-# PACKAGES REQUIRED ON REMOTE:
-# 	git 
-# 	$(PYTHON_NAME)
-# 	$(PYTHON_NAME)-venv
-#	python3-opencv
-#	python3-tk
-#	python3-numpy
-
 PYTHON_NAME=python3.10
-PYTHON_PKGS=opencv-contrib-python
-
 REMOTE_IP=192.168.50.166
 REMOTE_USER=odroid
 REMOTE_SSH=$(REMOTE_USER)@$(REMOTE_IP)
@@ -41,4 +31,4 @@ remote_setup:
 	ssh $(REMOTE_SSH) -f 'mkdir -p $(REMOTE_REMOTE_DIR) && cd  $(REMOTE_REMOTE_DIR) && git --bare init; cd $(REMOTE_CLONE_DIR) && git clone $(REMOTE_REMOTE_DIR) && cd ./vision && $(PYTHON_NAME) -m venv $(REMOTE_VENV) && chmod +x ./$(REMOTE_VENV)/bin/activate'
 
 remote_packages:
-	ssh $(REMOTE_SSH) -f 'cd $(REMOTE_CLONE_DIR)vision && source ./$(REMOTE_VENV)/bin/activate && pip install $(PYTHON_PKGS)'
+	ssh $(REMOTE_SSH) -f 'cd $(REMOTE_CLONE_DIR)vision && source ./$(REMOTE_VENV)/bin/activate'
