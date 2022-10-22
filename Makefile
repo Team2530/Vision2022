@@ -20,7 +20,7 @@ deploy:
 # Copy to remote with git push over ssh
 deploy_git:
 	git push -u deployment master
-	ssh $(REMOTE_SSH) -f 'cd $(REMOTE_CLONE_DIR)vision && git clean && git pull'
+	ssh $(REMOTE_SSH) -f 'cd $(REMOTE_CLONE_DIR)vision && git clean -f && git pull'
 
 restart_service:
 	ssh $(REMOTE_SSH) -f 'cd $(REMOTE_CLONE_DIR)vision && mkdir -p /home/$(REMOTE_USER)/.config/systemd/user/ && cp ./vision.service /home/$(REMOTE_USER)/.config/systemd/user/ && systemctl --user daemon-reload && systemctl --user restart vision'
