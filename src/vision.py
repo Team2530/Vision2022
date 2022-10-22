@@ -15,7 +15,6 @@ def find_cameras(camname):
     return list(cams.values())
 
 if __name__ == "__main__":
-    print("hello")
     if sys.platform == "linux":
         import systemd.daemon
         systemd.daemon.notify('READY=1')
@@ -30,8 +29,12 @@ if __name__ == "__main__":
         print("Error opening camera")
         exit(1)
 
+    f = 0
     while (True):
         try:
+            print(f"frame {f}")
+            f += 1
+            
             # time.sleep(1/60)
             ret, frame = cam1.read()
             
