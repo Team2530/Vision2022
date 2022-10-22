@@ -14,31 +14,37 @@ def find_cameras(camname):
     cams = {k:v for k,v in devices.items() if camname in k}
     return list(cams.values())
 
-cam1 = cv2.VideoCapture(find_cameras("LifeCam")[0], cv2.CAP_V4L2) if sys.platform == 'linux' else cv2.VideoCapture(1, cv2.CAP_DSHOW)
-
-stream = FlaskImageStreamer()
-th = threading.Thread(target=stream.run_server, daemon=True)
-th.start()
-
-if not cam1.isOpened():
-    print("Error opening camera")
-    exit(1)
-
-while (True):
-    try:
-        time.sleep(1/60)
-        ret, frame = cam1.read()
+if __name__ == "__main__":
+    print("hello")
+    if sys.platform == "linux":
+        import systemd.daemon
+        systemd.daemon.notify('READY=1')
         
-        # cv2.imshow("Test", frame)
-        # if cv2.waitKey(1) & 0xFF == ord('q'):
-            # break
-        
-        # Resize to reduce bandwidth
-        small_frame = cv2.resize(frame, (640, 320), interpolation=cv2.INTER_NEAREST)
-        stream.update(small_frame)
-    except KeyboardInterrupt:
-        break
+    cam1 = cv2.VideoCapture(find_cameras("LifeCam")[0], cv2.CAP_V4L2) if sys.platform == 'linux' else cv2.VideoCapture(1, cv2.CAP_DSHOW)
 
-# Cleanup
-cam1.release()
-cv2.destroyAllWindows()
+    stream = FlaskImageStreamer()
+    th = threading.Thread(target=stream.run_server, daemon=True)
+    th.start()
+
+    if not cam1.isOpened():
+        print("Error opening camera")
+        exit(1)
+
+    while (True):
+        try:
+            # time.sleep(1/60)
+            ret, frame = cam1.read()
+            
+            # cv2.imshow("Test", frame)
+            # if cv2.waitKey(1) & 0xFF == ord('q'):
+                # break
+            
+            # Resize to reduce bandwidth
+            small_frame = cv2.resize(frame, (720, 480), interpolation=cv2.INTER_NEAREST)
+            stream.update(small_frame)
+        except KeyboardInterrupt:
+            break
+
+    # Cleanup
+    cam1.release()
+    cv2.destroyAllWindows()
