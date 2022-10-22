@@ -32,11 +32,12 @@ while (True):
         # cv2.imshow("Test", frame)
         # if cv2.waitKey(1) & 0xFF == ord('q'):
             # break
-            
-        small_frame = cv2.resize(frame, (720, 480))
+        
+        # Resize to reduce bandwidth
+        small_frame = cv2.resize(frame, (640, 320), interpolation=cv2.INTER_NEAREST)
         stream.update(small_frame)
     except KeyboardInterrupt:
-        break;
+        break
 
 # Cleanup
 cam1.release()
