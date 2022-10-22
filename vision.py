@@ -2,12 +2,13 @@ import cv2
 import numpy as np
 import sys, re, subprocess
 
-CAM_RXP = re.compile(r'(.+) .+:\n\s{8}(.+)')
+CAM_RXP = re.compile(r'(.+) .+:\n\t(.+)')
 
 # Finds the (/dev/videoX) device file of all cameras with a name including `camname`
 def find_cameras(camname):
-    output = subprocess.run(['v4l2-ctl', '--list-devices'], stdout=subprocess.PIPE).stdout.decode('utf-8').replace('\r\n', '\n')
+    output = subprocess.run(['v4l2-ctl', '--list-devices'], stdout=subprocess.PIPE).stdout.decode('utf-8')
     devices = {k:v for k,v in CAM_RXP.findall(output)}
+    print(output, devices)
     cams = {k:v for k,v in devices.items() if camname in k}
     return list(cams.values())
 
