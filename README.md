@@ -15,14 +15,24 @@ Required APT packages:
 - python3-tk
 - python3-numpy
 
+Python packages:
+
+- OpenCV (installed via apt, enable global site-packages in venv)
+- Numpy ^
+- imutils
+- flask_compress
+- pupil_apriltags
+
 Key-based SSH authentication must be set up and default for the remote ODROID
 
 ## TODOs
 
 - [x] Automatic selection of correct camera(s) on linux using `v4l2-utils`
 - [x] Network-streamed debug & overlay output from pipeline
-- [ ] Deployment & debug without committing (rsync current unstaged working directory instead of cloning?)
+- [x] Deployment & debug without committing (rsync current unstaged working directory instead of cloning?)
   - Seperate makefile command to push to the remote repo
   - Also need a command to push to all remotes (github and remote bare repo)
-- [ ] Systemd service to run script
-  - [ ] Makefile command to print debug output from systemd service (for debugging)
+- [x] Systemd service to run script
+  - [x] Makefile command to print debug output from systemd service (for debugging)
+- [ ] Proper apriltag library for linux
+- [ ] Network tables data output

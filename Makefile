@@ -6,7 +6,6 @@ REMOTE_REMOTE_DIR=/home/$(REMOTE_USER)/vision.git
 REMOTE_CLONE_DIR=/home/$(REMOTE_USER)/
 REMOTE_VENV=vision_venv
 SSH_IDENTITY=-i ~/.ssh/vision_id
-RSYNC_PATH=/c/MinGW/msys/1.0/bin/rsync.exe
 
 test: deploy restart_service view
 
@@ -23,7 +22,7 @@ deploy_git:
 	ssh $(REMOTE_SSH) -f 'cd $(REMOTE_CLONE_DIR)vision && git stash && git clean -f && git pull'
 
 restart_service:
-	ssh $(REMOTE_SSH) -f 'cd $(REMOTE_CLONE_DIR)vision && mkdir -p /home/$(REMOTE_USER)/.config/systemd/user/ && cp ./vision.service /home/$(REMOTE_USER)/.config/systemd/user/ && systemctl --user daemon-reload && systemctl --user restart vision'
+	ssh $(REMOTE_SSH) -f 'cd $(REMOTE_CLONE_DIR)vision && mkdir -p /home/$(REMOTE_USER)/.config/systemd/user/ && cp ./vision.service /home/$(REMOTE_USER)/.config/systemd/user/ && systemctl --user daemon-reload && systemctl --user enable vision.service && systemctl --user restart vision'
 
 # Initializes deployment to the remote and venv on the remote (installs neccesary packages)
 # Pubkey-based ssh authentication must be set up and set to be the default for REMOTE_USER@REMOTE_IP
