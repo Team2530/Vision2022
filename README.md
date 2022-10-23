@@ -21,7 +21,7 @@ Python packages:
 - Numpy ^
 - imutils
 - flask_compress
-- pupil_apriltags
+- pupil_apriltags (windows) or dt_apriltags (linux)
 
 Key-based SSH authentication must be set up and default for the remote ODROID
 
