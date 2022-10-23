@@ -1,10 +1,43 @@
 from asyncio import subprocess
+from re import L
+import threading
 from flask import Response
 from flask import Flask
 from flask import render_template
 import shlex
 import cv2
 from flask_compress import Compress
+
+
+class CameraVideoStreamer():
+    def __init__(self, cam, width=720, height=480) -> None:
+        self.cap = cv2.VideoCapture(*cam)
+        self.cap.set(cv2.CAP_PROP_FOURCC,
+                     cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+        (self.grab, self.frame) = self.cap.read()
+        self.stopped = False
+        self.fresh = True
+
+    def reader(self):
+        while True:
+            (self.grab, self.frame) = self.cap.read()
+            self.fresh = True
+            if (self.stopped):
+                return
+
+    def start(self):
+        # start the thread to read frames from the video stream
+        threading.Thread(target=self.reader, daemon=True).start()
+        return self
+
+    def stop(self):
+        self.stopped = True
+
+    def get_frame(self):
+        self.fresh = False
+        return self.frame
 
 
 class FlaskMJPEGImageStreamer():

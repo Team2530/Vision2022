@@ -14,7 +14,7 @@ if sys.platform == 'linux':
 else:
     import pupil_apriltags as apriltags
 
-from streaming import FlaskMJPEGImageStreamer
+from streaming import CameraVideoStreamer, FlaskMJPEGImageStreamer
 
 CAM_RXP = re.compile(r'(.+) .+:\n\t(.+)')
 
@@ -69,15 +69,20 @@ if __name__ == "__main__":
         import systemd.daemon
         systemd.daemon.notify('READY=1')
 
+    IMG_WIDTH = 480
+    IMG_HEIGHT = 360
+
     NetworkTables.initialize(server=NT_IP)
     table = NetworkTables.getTable("LemonLight")
     smartdash = NetworkTables.getTable("SmartDashboard")
 
-    cam1 = cv2.VideoCapture(find_cameras("LifeCam")[
-                            0]) if sys.platform == 'linux' else cv2.VideoCapture(1, cv2.CAP_DSHOW)
-    cam1.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
-    cam1.set(cv2.CAP_PROP_FPS, 30)  # LifeCam only does 30fps
-    # cam1.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+    # cam1 = cv2.VideoCapture(find_cameras("Logitech")[
+    #                         0]) if sys.platform == 'linux' else cv2.VideoCapture(1, cv2.CAP_DSHOW)
+    # cam1.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
+    # # cam1.set(cv2.CAP_PROP_FPS, 30)  # LifeCam only does 30fps
+    # # cam1.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+    cvs = CameraVideoStreamer(
+        [find_cameras("LifeCam")[0]] if sys.platform == 'linux' else [1, cv2.CAP_DSHOW], width=IMG_WIDTH, height=IMG_HEIGHT).start()
 
     stream = FlaskMJPEGImageStreamer()
     th = threading.Thread(target=stream.run_server, daemon=True)
@@ -93,12 +98,9 @@ if __name__ == "__main__":
     # Tag size (m)
     TAG_SIZE = 0.1
 
-    IMG_WIDTH = 720
-    IMG_HEIGHT = 480
-
     at_detector = apriltags.Detector(
         families="tag36h11",
-        nthreads=4,
+        nthreads=8,
         quad_decimate=1.0,
         quad_sigma=0.0,
         refine_edges=1,
@@ -106,19 +108,19 @@ if __name__ == "__main__":
         debug=0
     )
 
-    if not cam1.isOpened():
-        print("Error opening camera")
-        exit(1)
+    # if not cam1.isOpened():
+    #     print("Error opening camera")
+    #     exit(1)
 
     prevtime = 0
     while (True):
         try:
-            # time.sleep(1/60)
-            ret, frame = cam1.read()
+            frame = cvs.get_frame()   # (cvs.grab, cvs.frame)
 
             # Resize to reduce bandwidth
-            small_frame = cv2.resize(
-                frame, (IMG_WIDTH, IMG_HEIGHT), interpolation=cv2.INTER_NEAREST)
+            # small_frame = cv2.resize(
+            #     frame, (IMG_WIDTH, IMG_HEIGHT), interpolation=cv2.INTER_NEAREST)
+            small_frame = frame
 
             debug_image = small_frame.copy()
 
@@ -131,14 +133,14 @@ if __name__ == "__main__":
                 tag_size=TAG_SIZE,
             )
 
-            table.putBoolean("hasTarget", bool(len(tags)))
-            table.putNumber(
-                "centerX", tags[0].center[0] - IMG_WIDTH/2 if len(tags) else 0)
-            table.putNumber(
-                "centerY", tags[0].center[1] - IMG_HEIGHT/2 if len(tags) else 0)
-            table.putNumber("poseX", tags[0].pose_t[0]*2 if len(tags) else 0)
-            table.putNumber("poseY", tags[0].pose_t[1]*2 if len(tags) else 0)
-            table.putNumber("poseZ", tags[0].pose_t[2]*2 if len(tags) else 0)
+            table.putNumber("targetsTracking", len(tags))
+            table.putNumberArray(
+                "centerX", [t.center[0] - IMG_WIDTH/2 for t in tags])
+            table.putNumberArray(
+                "centerY", [t.center[1] - IMG_WIDTH/2 for t in tags])
+            table.putNumberArray("poseX", [t.pose_t[0]*2 for t in tags])
+            table.putNumberArray("poseY", [t.pose_t[1]*2 for t in tags])
+            table.putNumberArray("poseZ", [t.pose_t[2]*2 for t in tags])
 
             debug_image = draw_tags(debug_image, tags)
 
@@ -147,11 +149,11 @@ if __name__ == "__main__":
             now = time.time()
             fps = int(1/(now - prevtime))
             prevtime = now
-            # print(fps)
+            print(fps)
         except KeyboardInterrupt:
             break
 
     # Cleanup
-    cam1.release()
+    # cam1.release()
     cv2.destroyAllWindows()
     stream.release()
