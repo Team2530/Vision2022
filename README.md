@@ -34,5 +34,5 @@ Key-based SSH authentication must be set up and default for the remote ODROID
   - Also need a command to push to all remotes (github and remote bare repo)
 - [x] Systemd service to run script
   - [x] Makefile command to print debug output from systemd service (for debugging)
-- [ ] Proper apriltag library for linux
-- [ ] Network tables data output
+- [x] Proper apriltag library for linux
+- [x] Network tables data output

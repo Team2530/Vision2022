@@ -6,6 +6,7 @@ import sys
 import re
 import subprocess
 import time
+from networktables import NetworkTables
 
 
 if sys.platform == 'linux':
@@ -17,6 +18,9 @@ from streaming import FlaskMJPEGImageStreamer
 
 CAM_RXP = re.compile(r'(.+) .+:\n\t(.+)')
 
+# Allow debugging with localhost robot simulator
+NT_IP = "10.23.30.2" if sys.platform == 'linux' else "localhost"
+
 
 # Finds the (/dev/videoX) device file of all cameras with a name including `camname`
 def find_cameras(camname):
@@ -27,6 +31,7 @@ def find_cameras(camname):
     return list(cams.values())
 
 
+# Draws apriltag detections as an overlay
 def draw_tags(
     image,
     tags: List[apriltags.Detection],
@@ -64,6 +69,10 @@ if __name__ == "__main__":
         import systemd.daemon
         systemd.daemon.notify('READY=1')
 
+    NetworkTables.initialize(server=NT_IP)
+    table = NetworkTables.getTable("LemonLight")
+    smartdash = NetworkTables.getTable("SmartDashboard")
+
     cam1 = cv2.VideoCapture(find_cameras("LifeCam")[
                             0]) if sys.platform == 'linux' else cv2.VideoCapture(1, cv2.CAP_DSHOW)
     cam1.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
@@ -83,6 +92,9 @@ if __name__ == "__main__":
 
     # Tag size (m)
     TAG_SIZE = 0.1
+
+    IMG_WIDTH = 720
+    IMG_HEIGHT = 480
 
     at_detector = apriltags.Detector(
         families="tag36h11",
@@ -106,7 +118,7 @@ if __name__ == "__main__":
 
             # Resize to reduce bandwidth
             small_frame = cv2.resize(
-                frame, (720, 480), interpolation=cv2.INTER_NEAREST)
+                frame, (IMG_WIDTH, IMG_HEIGHT), interpolation=cv2.INTER_NEAREST)
 
             debug_image = small_frame.copy()
 
@@ -119,6 +131,15 @@ if __name__ == "__main__":
                 tag_size=TAG_SIZE,
             )
 
+            table.putBoolean("hasTarget", bool(len(tags)))
+            table.putNumber(
+                "centerX", tags[0].center[0] - IMG_WIDTH/2 if len(tags) else 0)
+            table.putNumber(
+                "centerY", tags[0].center[1] - IMG_HEIGHT/2 if len(tags) else 0)
+            table.putNumber("poseX", tags[0].pose_t[0]*2 if len(tags) else 0)
+            table.putNumber("poseY", tags[0].pose_t[1]*2 if len(tags) else 0)
+            table.putNumber("poseZ", tags[0].pose_t[2]*2 if len(tags) else 0)
+
             debug_image = draw_tags(debug_image, tags)
 
             stream.update(debug_image)
@@ -126,7 +147,7 @@ if __name__ == "__main__":
             now = time.time()
             fps = int(1/(now - prevtime))
             prevtime = now
-            print(fps)
+            # print(fps)
         except KeyboardInterrupt:
             break
 
