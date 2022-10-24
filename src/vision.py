@@ -1,3 +1,4 @@
+import socket
 import threading
 from typing import List
 import cv2
@@ -7,7 +8,6 @@ import re
 import subprocess
 import time
 from networktables import NetworkTables
-
 
 if sys.platform == 'linux':
     import dt_apriltags as apriltags
@@ -19,10 +19,25 @@ from streaming import CameraVideoStreamer, FlaskMJPEGImageStreamer
 CAM_RXP = re.compile(r'(.+) .+:\n\t(.+)')
 
 # Allow debugging with localhost robot simulator
-NT_IP = "10.23.30.2" if sys.platform == 'linux' else "localhost"
+NT_IP = "10.25.30.2" if sys.platform == 'linux' else "localhost"
 
+
+def get_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.settimeout(0)
+    try:
+        # doesn't even have to be reachable
+        s.connect(('10.254.254.254', 1))
+        IP = s.getsockname()[0]
+    except Exception:
+        IP = '127.0.0.1'
+    finally:
+        s.close()
+    return IP
 
 # Finds the (/dev/videoX) device file of all cameras with a name including `camname`
+
+
 def find_cameras(camname):
     output = subprocess.run(['v4l2-ctl', '--list-devices'],
                             stdout=subprocess.PIPE).stdout.decode('utf-8')
@@ -96,7 +111,7 @@ if __name__ == "__main__":
     )
 
     # Tag size (m)
-    TAG_SIZE = 0.1
+    TAG_SIZE = 0.166  # 0.1
 
     at_detector = apriltags.Detector(
         families="tag36h11",
@@ -108,9 +123,7 @@ if __name__ == "__main__":
         debug=0
     )
 
-    # if not cam1.isOpened():
-    #     print("Error opening camera")
-    #     exit(1)
+    my_ip = get_ip()
 
     prevtime = 0
     while (True):
@@ -134,22 +147,32 @@ if __name__ == "__main__":
             )
 
             table.putNumber("targetsTracking", len(tags))
+            table.putStringArray("id", [str(t.tag_id) for t in tags])
             table.putNumberArray(
                 "centerX", [t.center[0] - IMG_WIDTH/2 for t in tags])
             table.putNumberArray(
                 "centerY", [t.center[1] - IMG_WIDTH/2 for t in tags])
-            table.putNumberArray("poseX", [t.pose_t[0]*2 for t in tags])
-            table.putNumberArray("poseY", [t.pose_t[1]*2 for t in tags])
-            table.putNumberArray("poseZ", [t.pose_t[2]*2 for t in tags])
+            table.putNumberArray("transX", [t.pose_t[0]*2 for t in tags])
+            table.putNumberArray("transY", [t.pose_t[1]*2 for t in tags])
+            table.putNumberArray("transZ", [t.pose_t[2]*2 for t in tags])
+
+            # TODO: Deal with the rotation matrix
+            # table.putNumberArray("rotX", [t.pose_R[0]*2 for t in tags])
+            # table.putNumberArray("rotY", [t.pose_R[1]*2 for t in tags])
+            # table.putNumberArray("rotZ", [t.pose_R[2]*2 for t in tags])
 
             debug_image = draw_tags(debug_image, tags)
 
             stream.update(debug_image)
 
             now = time.time()
-            fps = int(1/(now - prevtime))
+            fps = 1/(now - prevtime)
             prevtime = now
-            print(fps)
+            table.putNumber("FPS", fps)
+            table.putNumber("width", IMG_WIDTH)
+            table.putNumber("height", IMG_HEIGHT)
+            table.putString("streamURI", f"http://{my_ip}:5000/")
+
         except KeyboardInterrupt:
             break
 
